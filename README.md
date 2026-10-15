@@ -7,9 +7,9 @@
 沒有填 Supabase 設定（config.js 留空）時，直接雙擊 index.html 就能玩，這時是「試玩模式」：用內建的官方單字表與 253 題文法題，成績只存在這台瀏覽器。
 
 ## 正式上線（GitHub + Supabase）
-後端已建在 Supabase 專案 gept-practice，config.js 已填好網址與公開金鑰，資料表與安全規則都套用完成（schema.sql 是備份）。剩下：
+後端放在 Supabase 專案 daruma（英檢的表都以 gept_ 開頭，與 daruma 原有資料分開），config.js 已填好網址與公開金鑰，資料表與安全規則都套用完成（schema.sql 是備份）。剩下：
 1. 到 Supabase 的 Authentication > Users > Add user，用老師的 email 和密碼建立帳號。
-2. 到 SQL Editor 執行：insert into public.teachers(email) values ('老師的email');
+2. 到 SQL Editor 執行：insert into public.gept_teachers(email) values ('老師的email');
    只有名單內的 email 才看得到成績。Supabase 預設任何人都能註冊，所以這一步不能省。
 3. 建議到 Authentication 的設定把「Allow new users to sign up」關掉。
 4. 打開 admin.html 用老師帳號登入，到「題庫管理」匯入 gept-words-all.csv 與 gept-grammar-all.csv。

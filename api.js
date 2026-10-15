@@ -52,17 +52,17 @@
   window.API = {
     cloud,
     sb,
-    async getWords(level) { return cloud ? fetchAll("words", level) : byLevel(await loadDemoWords(), level); },
-    async getGrammar(level) { return cloud ? fetchAll("grammar_questions", level) : byLevel(await loadDemoGrammar(), level); },
+    async getWords(level) { return cloud ? fetchAll("gept_words", level) : byLevel(await loadDemoWords(), level); },
+    async getGrammar(level) { return cloud ? fetchAll("gept_grammar_questions", level) : byLevel(await loadDemoGrammar(), level); },
 
     async saveAttempt(attempt, answers) {
       // 學生是匿名身分，沒有「讀取成績」的權限，所以編號由學生端產生，寫入時不要求回傳資料
       const id = uuid();
       if (cloud) {
-        const { error } = await sb.from("attempts").insert({ id, ...attempt });
+        const { error } = await sb.from("gept_attempts").insert({ id, ...attempt });
         if (error) throw error;
         const rows = answers.map(a => ({ ...a, attempt_id: id }));
-        const { error: e2 } = await sb.from("attempt_answers").insert(rows);
+        const { error: e2 } = await sb.from("gept_attempt_answers").insert(rows);
         if (e2) throw e2;
         return id;
       }
@@ -84,7 +84,7 @@
 
     async listAttempts() {
       if (cloud) {
-        const { data, error } = await sb.from("attempts").select("*").order("created_at", { ascending: false }).limit(2000);
+        const { data, error } = await sb.from("gept_attempts").select("*").order("created_at", { ascending: false }).limit(2000);
         if (error) throw error;
         return data;
       }
@@ -92,7 +92,7 @@
     },
     async getAnswers(attemptId) {
       if (cloud) {
-        const { data, error } = await sb.from("attempt_answers").select("*").eq("attempt_id", attemptId).order("id");
+        const { data, error } = await sb.from("gept_attempt_answers").select("*").eq("attempt_id", attemptId).order("id");
         if (error) throw error;
         return data;
       }
@@ -104,7 +104,7 @@
       if (cloud) {
         let out = [], from = 0, step = 1000;
         while (true) {
-          const { data, error } = await sb.from("attempt_answers").select("qtype,qid,prompt,correct_answer,is_correct").range(from, from + step - 1);
+          const { data, error } = await sb.from("gept_attempt_answers").select("qtype,qid,prompt,correct_answer,is_correct").range(from, from + step - 1);
           if (error) throw error;
           out = out.concat(data);
           if (data.length < step) break;
@@ -115,27 +115,27 @@
       return LS("demo_attempts", []).flatMap(a => a.answers);
     },
     async deleteAttempt(id) {
-      if (cloud) { const { error } = await sb.from("attempts").delete().eq("id", id); if (error) throw error; return; }
+      if (cloud) { const { error } = await sb.from("gept_attempts").delete().eq("id", id); if (error) throw error; return; }
       SAVE("demo_attempts", LS("demo_attempts", []).filter(a => a.id !== id));
     },
     async importWords(rows) {
       if (!cloud) throw new Error("試玩模式不能匯入，請先設定 Supabase");
       for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await sb.from("words").upsert(rows.slice(i, i + 500), { onConflict: "word,meaning", ignoreDuplicates: true });
+        const { error } = await sb.from("gept_words").upsert(rows.slice(i, i + 500), { onConflict: "word,meaning", ignoreDuplicates: true });
         if (error) throw error;
       }
     },
     async importGrammar(rows) {
       if (!cloud) throw new Error("試玩模式不能匯入，請先設定 Supabase");
       for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await sb.from("grammar_questions").insert(rows.slice(i, i + 500));
+        const { error } = await sb.from("gept_grammar_questions").insert(rows.slice(i, i + 500));
         if (error) throw error;
       }
     },
     async counts() {
       if (!cloud) return { words: (await loadDemoWords()).length, grammar: (await loadDemoGrammar()).length };
-      const w = await sb.from("words").select("id", { count: "exact", head: true });
-      const g = await sb.from("grammar_questions").select("id", { count: "exact", head: true });
+      const w = await sb.from("gept_words").select("id", { count: "exact", head: true });
+      const g = await sb.from("gept_grammar_questions").select("id", { count: "exact", head: true });
       return { words: w.count || 0, grammar: g.count || 0 };
     }
   };
