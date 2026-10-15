@@ -1,0 +1,55 @@
+// 試玩模式用的範例題庫（只是少量示範，正式題庫請用後台匯入 CSV）
+// words: [英文, 詞性, 中文, 級別 e=初級 i=中級]
+window.SAMPLE_WORDS = [
+["apple","n.","蘋果","e"],["borrow","v.","借（入）","e"],["careful","adj.","小心的","e"],["dangerous","adj.","危險的","e"],
+["early","adj.","早的","e"],["finish","v.","完成","e"],["garden","n.","花園","e"],["healthy","adj.","健康的","e"],
+["important","adj.","重要的","e"],["join","v.","加入","e"],["kitchen","n.","廚房","e"],["lazy","adj.","懶惰的","e"],
+["meeting","n.","會議","e"],["neighbor","n.","鄰居","e"],["order","v.","點（餐）；命令","e"],["package","n.","包裹","e"],
+["quiet","adj.","安靜的","e"],["receive","v.","收到","e"],["safe","adj.","安全的","e"],["traffic","n.","交通","e"],
+["umbrella","n.","雨傘","e"],["visit","v.","拜訪","e"],["weather","n.","天氣","e"],["yesterday","adv.","昨天","e"],
+["airport","n.","機場","e"],["birthday","n.","生日","e"],["cheap","adj.","便宜的","e"],["delicious","adj.","美味的","e"],
+["exercise","n.","運動","e"],["forget","v.","忘記","e"],
+["achieve","v.","達成","i"],["ability","n.","能力","i"],["advantage","n.","優點","i"],["behavior","n.","行為","i"],
+["challenge","n.","挑戰","i"],["communicate","v.","溝通","i"],["decision","n.","決定","i"],["environment","n.","環境","i"],
+["experience","n.","經驗","i"],["fortunate","adj.","幸運的","i"],["generous","adj.","慷慨的","i"],["honest","adj.","誠實的","i"],
+["imagine","v.","想像","i"],["increase","v.","增加","i"],["justice","n.","正義","i"],["knowledge","n.","知識","i"],
+["lecture","n.","演講；講課","i"],["maintain","v.","維持","i"],["necessary","adj.","必要的","i"],["opportunity","n.","機會","i"],
+["patient","adj.","有耐心的","i"],["quality","n.","品質","i"],["reduce","v.","減少","i"],["responsible","adj.","負責任的","i"],
+["society","n.","社會","i"],["tradition","n.","傳統","i"],["unique","adj.","獨特的","i"],["volunteer","n.","志工","i"],
+["whisper","v.","低語","i"],["generation","n.","世代","i"]
+];
+
+// grammar: [題目, A, B, C, D, 答案index(0~3), 解析, 主題, 級別]
+window.SAMPLE_GRAMMAR = [
+["She ___ to school every day.","go","goes","going","gone",1,"主詞 she 為第三人稱單數，現在簡單式動詞加 -es。","現在簡單式","e"],
+["I ___ TV when my mother came home.","watch","watched","was watching","am watching",2,"過去某時間點正在進行的動作用過去進行式。","過去進行式","e"],
+["There ___ two books on the desk.","is","are","be","was",1,"two books 為複數，用 are。","There be","e"],
+["He is ___ than his brother.","tall","taller","tallest","more tall",1,"兩者比較用比較級 taller。","比較級","e"],
+["My sister is the ___ girl in her class.","smart","smarter","smartest","most smarter",2,"the 後面用最高級 smartest。","最高級","e"],
+["Would you like ___ tea?","some","any","many","few",0,"表示邀請、提供時，肯定意味用 some。","some/any","e"],
+["We ___ to the zoo last Sunday.","go","goes","went","going",2,"last Sunday 表過去，用過去式 went。","過去簡單式","e"],
+["She can ___ the piano very well.","plays","play","playing","to play",1,"助動詞 can 後接原形動詞。","助動詞","e"],
+["I have lived here ___ 2015.","for","since","during","from",1,"since 後接時間點，用於現在完成式。","現在完成式","e"],
+["Please turn ___ the light. It's too dark.","off","on","up","down",1,"turn on 表打開（燈）。","片語動詞","e"],
+["This book is ___ interesting than that one.","more","most","much","very",0,"多音節形容詞比較級用 more。","比較級","e"],
+["He asked me ___ I was going.","where","what","who","which",0,"間接問句，問地點用 where。","間接問句","e"],
+["The cake ___ by my mother yesterday.","makes","made","was made","is making",2,"蛋糕是被做的，過去被動 was made。","被動語態","e"],
+["If it ___ tomorrow, we will stay at home.","rains","will rain","rained","rain",0,"條件句的 if 子句用現在式代替未來式。","條件句","e"],
+["Tom is good ___ playing basketball.","in","at","on","with",1,"be good at + V-ing。","介系詞","e"],
+["I enjoy ___ to music.","listen","to listen","listening","listened",2,"enjoy 後接動名詞。","動名詞","e"],
+["She has ___ finished her homework.","yet","already","ago","still",1,"肯定句中表示『已經』用 already。","現在完成式","e"],
+["How ___ water do you drink every day?","many","much","few","a lot",1,"water 為不可數名詞，用 how much。","數量詞","e"],
+["The boy ___ is standing there is my cousin.","which","who","whose","whom",1,"先行詞為人，主格關代用 who。","關係代名詞","i"],
+["If I ___ you, I would accept the offer.","am","was","were","be",2,"與現在事實相反的假設，if 子句 be 動詞用 were。","假設語氣","i"],
+["He suggested that we ___ early.","leave","left","leaves","leaving",0,"suggest 後的 that 子句用原形動詞（should 省略）。","假設語氣","i"],
+["By the time she arrived, the movie ___.","already started","has already started","had already started","was already starting",2,"在過去某時間點之前已完成，用過去完成式。","過去完成式","i"],
+["The report, ___ was written by Mary, is excellent.","who","which","what","whom",1,"非限定用法，先行詞為物，用 which。","關係代名詞","i"],
+["Not only ___ English but also he speaks French.","he speaks","does he speak","speaks he","he does speak",1,"Not only 置於句首，主詞與助動詞倒裝。","倒裝句","i"],
+["I look forward to ___ from you.","hear","hearing","heard","be hearing",1,"look forward to 的 to 是介系詞，後接動名詞。","動名詞","i"],
+["She is said ___ a famous singer.","be","to be","being","been",1,"be said to + 原形動詞。","不定詞","i"],
+["___ the heavy rain, the game continued.","Although","Despite","Because","However",1,"Despite 為介系詞，後接名詞片語。","連接詞與介系詞","i"],
+["The more you practice, ___ you will become.","the better","better","the best","the good",0,"the + 比較級, the + 比較級。","比較級","i"],
+["He denied ___ the window.","break","to break","breaking","broke",2,"deny 後接動名詞。","動名詞","i"],
+["This is the house ___ I was born.","which","where","who","what",1,"先行詞為地點，關係副詞用 where。","關係副詞","i"],
+["I wish I ___ more time to finish it.","have","had","will have","having",1,"與現在事實相反的願望，用過去式。","假設語氣","i"]
+];

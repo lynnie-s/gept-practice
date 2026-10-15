@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>老師後台｜英檢練習</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#23232b;--mute:#7b7b88;--main:#4c6fff;--line:#e6e8f0;--ok:#2fb36d;--bad:#e5484d;--warn:#f59f00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:18px 14px 60px}
+h1{font-size:22px;margin:6px 0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+input,select{padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:15px;background:#fff}
+button{padding:9px 14px;border:0;border-radius:9px;background:var(--main);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+button.sec{background:#eef0f8;color:var(--ink)}
+button.red{background:#fdecec;color:var(--bad)}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--main);color:#fff;border-color:var(--main)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:600;font-size:13px;white-space:nowrap}
+.tw{overflow-x:auto}
+.s{font-weight:800}
+.s.hi{color:var(--ok)}.s.mid{color:var(--warn)}.s.lo{color:var(--bad)}
+.row{cursor:pointer}.row:hover{background:#f9faff}
+.detail td{background:#fafbff}
+.wr{padding:6px 0;border-bottom:1px dashed var(--line)}
+.wr .b{color:var(--bad);text-decoration:line-through}.wr .a{color:var(--ok);font-weight:700}
+.tag{display:inline-block;font-size:12px;background:#eef0f8;border-radius:6px;padding:1px 7px;margin-right:6px;color:var(--mute)}
+.bar{height:8px;background:#eef0f8;border-radius:99px;overflow:hidden;min-width:70px}.bar i{display:block;height:100%;background:var(--bad)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:24px}.stat span{color:var(--mute);font-size:13px}
+.hide{display:none!important}
+.mute{color:var(--mute);font-size:13px}
+.demo{background:#fff3c4;border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:12px}
+textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--line);border-radius:9px;font-family:monospace;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1><span>👩‍🏫 老師後台</span><span><a href="index.html" style="font-size:14px;color:var(--main)">學生練習頁</a> <button class="sec hide" id="logout">登出</button></span></h1>
+<div id="demoTip" class="demo hide">試玩模式：只看得到這台瀏覽器練習出來的成績。要跨裝置看全部學生，請設定 Supabase（看 README）。</div>
+
+<!-- 登入 -->
+<div id="login" class="card hide" style="max-width:380px">
+  <b>老師登入</b>
+  <div style="margin-top:10px"><input id="em" type="text" placeholder="Email" style="width:100%"></div>
+  <div style="margin-top:8px"><input id="pw" type="password" placeholder="密碼" style="width:100%"></div>
+  <div id="lerr" style="color:var(--bad);font-size:13px;margin-top:6px"></div>
+  <button id="loginBtn" style="margin-top:10px;width:100%">登入</button>
+</div>
+
+<!-- 主畫面 -->
+<div id="main" class="hide">
+  <div class="stats" id="stats"></div>
+  <div class="tabs" id="tabs">
+    <button data-t="t-att" class="on">成績紀錄</button>
+    <button data-t="t-stu">學生總覽</button>
+    <button data-t="t-hard">最常錯的題目</button>
+    <button data-t="t-bank">題庫管理</button>
+  </div>
+
+  <div id="t-att" class="card">
+    <div class="toolbar">
+      <input id="fq" type="text" placeholder="搜尋學生姓名">
+      <select id="fm"><option value="">全部內容</option><option value="vocab">單字</option><option value="grammar">文法</option><option value="mixed">綜合</option><option value="wrong">錯題本</option></select>
+      <button class="sec" id="csvAtt">匯出 CSV</button>
+      <span class="mute">點一列可看這回答錯的題目</span>
+    </div>
+    <div class="tw"><table><thead><tr><th>時間</th><th>學生</th><th>內容</th><th>範圍</th><th>分數</th><th>對/總</th><th>用時</th><th></th></tr></thead><tbody id="attBody"></tbody></table></div>
+  </div>
+
+  <div id="t-stu" class="card hide">
+    <div class="tw"><table><thead><tr><th>學生</th><th>練習次數</th><th>平均分數</th><th>最高</th><th>最近一次</th></tr></thead><tbody id="stuBody"></tbody></table></div>
+  </div>
+
+  <div id="t-hard" class="card hide">
+    <div class="toolbar"><span class="mute">統計所有學生的作答，依「答錯次數」排序（至少被作答 2 次）</span></div>
+    <div class="tw"><table><thead><tr><th>題目</th><th>正確答案</th><th>作答</th><th>答錯</th><th>錯誤率</th></tr></thead><tbody id="hardBody"></tbody></table></div>
+  </div>
+
+  <div id="t-bank" class="card hide">
+    <div id="counts" style="margin-bottom:14px;font-weight:700"></div>
+    <b>匯入單字</b> <span class="mute">CSV 欄位：word,pos,meaning,level（level 填 elementary 或 intermediate）；重複的單字會自動略過</span>
+    <div class="toolbar" style="margin-top:8px"><input type="file" id="fw" accept=".csv"><button id="impW">匯入單字</button><a href="words-template.csv" download style="font-size:13px">下載範例</a></div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+    <b>匯入文法題</b> <span class="mute">CSV 欄位：question,opt_a,opt_b,opt_c,opt_d,answer(A/B/C/D),explanation,topic,level</span>
+    <div class="toolbar" style="margin-top:8px"><input type="file" id="fg" accept=".csv"><button id="impG">匯入文法題</button><a href="grammar-template.csv" download style="font-size:13px">下載範例</a></div>
+    <div id="impMsg" class="mute" style="margin-top:10px"></div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="api.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const MODE = { vocab: "單字", grammar: "文法", mixed: "綜合", wrong: "錯題本" };
+const LEVEL = { elementary: "初級", intermediate: "中級", all: "初＋中" };
+let attempts = [], wrongAll = [];
+
+const fmt = d => { const t = new Date(d); const p = n => String(n).padStart(2, "0"); return (t.getMonth() + 1) + "/" + p(t.getDate()) + " " + p(t.getHours()) + ":" + p(t.getMinutes()); };
+const cls = s => s >= 80 ? "hi" : s >= 60 ? "mid" : "lo";
+const dur = s => s >= 60 ? Math.floor(s / 60) + "分" + (s % 60) + "秒" : s + "秒";
+
+(async function init() {
+  if (!API.cloud) $("demoTip").classList.remove("hide");
+  const s = await API.session();
+  s ? start() : $("login").classList.remove("hide");
+})();
+
+$("loginBtn").onclick = async () => {
+  $("lerr").textContent = "";
+  try { await API.login($("em").value.trim(), $("pw").value); $("login").classList.add("hide"); start(); }
+  catch (e) { $("lerr").textContent = "登入失敗：" + (e.message || e); }
+};
+$("pw").addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
+$("logout").onclick = async () => { await API.logout(); location.reload(); };
+
+async function start() {
+  $("main").classList.remove("hide");
+  if (API.cloud) $("logout").classList.remove("hide");
+  await load();
+}
+
+async function load() {
+  attempts = await API.listAttempts();
+  renderStats(); renderAtt(); renderStu();
+  API.counts().then(c => $("counts").textContent = "目前題庫：單字 " + c.words + " 個、文法題 " + c.grammar + " 題");
+  API.allWrongAnswers().then(a => { wrongAll = a; renderHard(); });
+}
+
+function renderStats() {
+  const n = attempts.length, avg = n ? Math.round(attempts.reduce((s, a) => s + a.score, 0) / n) : 0;
+  const stu = new Set(attempts.map(a => a.student_name)).size;
+  const today = attempts.filter(a => new Date(a.created_at).toDateString() === new Date().toDateString()).length;
+  $("stats").innerHTML = [["練習總次數", n], ["學生人數", stu], ["平均分數", avg], ["今天練習", today]].map(x => '<div class="stat"><b>' + x[1] + '</b><span>' + x[0] + '</span></div>').join("");
+}
+
+function renderAtt() {
+  const q = $("fq").value.trim().toLowerCase(), m = $("fm").value;
+  const list = attempts.filter(a => (!m || a.mode === m) && (!q || a.student_name.toLowerCase().includes(q)));
+  $("attBody").innerHTML = list.map(a => '<tr class="row" data-id="' + a.id + '"><td>' + fmt(a.created_at) + '</td><td>' + esc(a.student_name) + '</td><td>' + (MODE[a.mode] || a.mode) + '</td><td>' + (LEVEL[a.level] || a.level) + '</td><td class="s ' + cls(a.score) + '">' + a.score + '</td><td>' + a.correct + '/' + a.total + '</td><td>' + dur(a.duration_sec || 0) + '</td><td><button class="red" data-del="' + a.id + '">刪除</button></td></tr>').join("") || '<tr><td colspan="8" class="mute">還沒有成績紀錄</td></tr>';
+}
+$("fq").oninput = renderAtt; $("fm").onchange = renderAtt;
+
+$("attBody").addEventListener("click", async e => {
+  const del = e.target.closest("[data-del]");
+  if (del) {
+    if (confirm("確定刪除這筆成績？")) { await API.deleteAttempt(Number(del.dataset.del)); await load(); }
+    return;
+  }
+  const tr = e.target.closest("tr.row"); if (!tr) return;
+  const nxt = tr.nextElementSibling;
+  if (nxt && nxt.classList.contains("detail")) { nxt.remove(); return; }
+  const rows = await API.getAnswers(Number(tr.dataset.id));
+  const wr = rows.filter(r => !r.is_correct);
+  const d = document.createElement("tr"); d.className = "detail";
+  d.innerHTML = '<td colspan="8">' + (wr.length ? '<b>答錯 ' + wr.length + ' 題</b>' + wr.map(r => '<div class="wr"><span class="tag">' + (r.qtype === "grammar" ? "文法" : "單字") + '</span>' + esc(r.prompt) + '<br>學生選：<span class="b">' + esc(r.chosen) + '</span>　正確：<span class="a">' + esc(r.correct_answer) + '</span></div>').join("") : "全部答對 🎉") + '</td>';
+  tr.after(d);
+});
+
+function renderStu() {
+  const map = {};
+  attempts.forEach(a => { const k = a.student_name; (map[k] = map[k] || { name: k, list: [] }).list.push(a); });
+  $("stuBody").innerHTML = Object.values(map).sort((a, b) => b.list.length - a.list.length).map(s => {
+    const avg = Math.round(s.list.reduce((x, a) => x + a.score, 0) / s.list.length);
+    return '<tr><td>' + esc(s.name) + '</td><td>' + s.list.length + '</td><td class="s ' + cls(avg) + '">' + avg + '</td><td>' + Math.max(...s.list.map(a => a.score)) + '</td><td>' + fmt(s.list[0].created_at) + '</td></tr>';
+  }).join("") || '<tr><td colspan="5" class="mute">還沒有資料</td></tr>';
+}
+
+function renderHard() {
+  const map = {};
+  wrongAll.forEach(r => { const k = r.qtype + "#" + r.qid; const o = map[k] = map[k] || { p: r.prompt, c: r.correct_answer, t: r.qtype, n: 0, w: 0 }; o.n++; if (!r.is_correct) o.w++; });
+  const arr = Object.values(map).filter(o => o.n >= 2 && o.w > 0).sort((a, b) => b.w - a.w || b.w / b.n - a.w / a.n).slice(0, 50);
+  $("hardBody").innerHTML = arr.map(o => '<tr><td><span class="tag">' + (o.t === "grammar" ? "文法" : "單字") + '</span>' + esc(o.p) + '</td><td>' + esc(o.c) + '</td><td>' + o.n + '</td><td>' + o.w + '</td><td><div class="bar"><i style="width:' + Math.round(o.w / o.n * 100) + '%"></i></div>' + Math.round(o.w / o.n * 100) + '%</td></tr>').join("") || '<tr><td colspan="5" class="mute">資料還不夠多（同一題至少被作答 2 次才會列出）</td></tr>';
+}
+
+$("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  [...$("tabs").children].forEach(x => x.classList.toggle("on", x === b));
+  ["t-att", "t-stu", "t-hard", "t-bank"].forEach(id => $(id).classList.toggle("hide", id !== b.dataset.t));
+});
+
+$("csvAtt").onclick = () => {
+  const q = c => '"' + String(c ?? "").replace(/"/g, '""') + '"';
+  const head = ["時間", "學生", "內容", "範圍", "分數", "答對", "總題數", "用時(秒)"];
+  const rows = attempts.map(a => [new Date(a.created_at).toLocaleString("zh-TW"), a.student_name, MODE[a.mode], LEVEL[a.level], a.score, a.correct, a.total, a.duration_sec]);
+  const blob = new Blob(["﻿" + [head, ...rows].map(r => r.map(q).join(",")).join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "scores.csv"; a.click();
+};
+
+// ---- CSV 匯入 ----
+function parseCSV(text) {
+  text = text.replace(/^﻿/, "");
+  const rows = []; let row = [], cur = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; } else cur += c; }
+    else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cur); cur = ""; if (row.some(x => x.trim() !== "")) rows.push(row); row = []; }
+    else cur += c;
+  }
+  if (cur !== "" || row.length) { row.push(cur); if (row.some(x => x.trim() !== "")) rows.push(row); }
+  const head = rows.shift().map(h => h.trim().toLowerCase());
+  return rows.map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? "").trim()])));
+}
+const normLevel = v => /^i|中/i.test(v) ? "intermediate" : "elementary";
+async function readFile(inp) { const f = inp.files[0]; if (!f) throw new Error("請先選擇 CSV 檔"); return parseCSV(await f.text()); }
+
+$("impW").onclick = async () => {
+  try {
+    const rows = (await readFile($("fw"))).filter(r => r.word && r.meaning).map(r => ({ word: r.word, pos: r.pos || "", meaning: r.meaning, level: normLevel(r.level) }));
+    $("impMsg").textContent = "匯入中…（" + rows.length + " 筆）";
+    await API.importWords(rows); $("impMsg").textContent = "✅ 單字匯入完成，共處理 " + rows.length + " 筆"; load();
+  } catch (e) { $("impMsg").textContent = "❌ " + (e.message || e); }
+};
+$("impG").onclick = async () => {
+  try {
+    const rows = (await readFile($("fg"))).filter(r => r.question && r.opt_a).map(r => ({
+      question: r.question, opt_a: r.opt_a, opt_b: r.opt_b, opt_c: r.opt_c, opt_d: r.opt_d,
+      answer: Math.max(0, "ABCD".indexOf((r.answer || "A").toUpperCase())), explanation: r.explanation || "", topic: r.topic || "", level: normLevel(r.level)
+    }));
+    $("impMsg").textContent = "匯入中…（" + rows.length + " 筆）";
+    await API.importGrammar(rows); $("impMsg").textContent = "✅ 文法題匯入完成，共 " + rows.length + " 題"; load();
+  } catch (e) { $("impMsg").textContent = "❌ " + (e.message || e); }
+};
+</script>
+</body>
+</html>
