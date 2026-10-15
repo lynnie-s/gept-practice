@@ -67,7 +67,7 @@ textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--line);b
   <div id="t-att" class="card">
     <div class="toolbar">
       <input id="fq" type="text" placeholder="搜尋學生姓名">
-      <select id="fm"><option value="">全部內容</option><option value="vocab">單字</option><option value="grammar">文法</option><option value="mixed">綜合</option><option value="wrong">錯題本</option></select>
+      <select id="fm"><option value="">全部內容</option><option value="vocab">單字</option><option value="cloze">句子填空</option><option value="grammar">文法</option><option value="mixed">綜合</option><option value="wrong">錯題本</option></select>
       <button class="sec" id="csvAtt">匯出 CSV</button>
       <span class="mute">點一列可看這回答錯的題目</span>
     </div>
@@ -85,7 +85,7 @@ textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--line);b
 
   <div id="t-bank" class="card hide">
     <div id="counts" style="margin-bottom:14px;font-weight:700"></div>
-    <b>匯入單字</b> <span class="mute">CSV 欄位：word,pos,meaning,level（level 填 elementary 或 intermediate）；重複的單字會自動略過</span>
+    <b>匯入單字</b> <span class="mute">CSV 欄位：word,pos,meaning,level,sentence（level 填 elementary 或 intermediate；sentence 是例句，句子填空用）；重複的單字會自動略過，但會補上還沒有的例句</span>
     <div class="toolbar" style="margin-top:8px"><input type="file" id="fw" accept=".csv"><button id="impW">匯入單字</button><a href="words-template.csv" download style="font-size:13px">下載範例</a></div>
     <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <b>匯入文法題</b> <span class="mute">CSV 欄位：question,opt_a,opt_b,opt_c,opt_d,answer(A/B/C/D),explanation,topic,level</span>
@@ -102,7 +102,7 @@ textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--line);b
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const MODE = { vocab: "單字", grammar: "文法", mixed: "綜合", wrong: "錯題本" };
+const MODE = { vocab: "單字", cloze: "句子填空", grammar: "文法", mixed: "綜合", wrong: "錯題本" };
 const LEVEL = { elementary: "初級", intermediate: "中級", all: "初＋中" };
 let attempts = [], hardStats = [];
 
@@ -216,7 +216,7 @@ async function readFile(inp) { const f = inp.files[0]; if (!f) throw new Error("
 
 $("impW").onclick = async () => {
   try {
-    const rows = (await readFile($("fw"))).filter(r => r.word && r.meaning).map(r => ({ word: r.word, pos: r.pos || "", meaning: r.meaning, level: normLevel(r.level) }));
+    const rows = (await readFile($("fw"))).filter(r => r.word && r.meaning).map(r => ({ word: r.word, pos: r.pos || "", meaning: r.meaning, level: normLevel(r.level), sentence: r.sentence || "" }));
     $("impMsg").textContent = "匯入中…（" + rows.length + " 筆）";
     await API.importWords(rows); $("impMsg").textContent = "✅ 單字匯入完成，共處理 " + rows.length + " 筆"; load();
   } catch (e) { $("impMsg").textContent = "❌ " + (e.message || e); }

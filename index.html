@@ -67,6 +67,7 @@ input[type=text]:focus{outline:none;border-color:var(--main)}
     <label>練習內容</label>
     <div class="seg" id="modeSeg">
       <button data-v="vocab" class="on">單字</button>
+      <button data-v="cloze">句子填空</button>
       <button data-v="grammar">文法</button>
       <button data-v="mixed">綜合</button>
       <button data-v="wrong">錯題本 <span id="wrongN"></span></button>
@@ -166,11 +167,38 @@ function vocabQuestions(words, count) {
     };
   });
 }
+// 句子填空：把例句裡的單字挖空，從 4 個單字裡選出正確的
+function blankOut(sentence, word) {
+  const re = new RegExp("(?<![A-Za-z])" + word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![A-Za-z])", "gi");
+  return re.test(sentence) ? sentence.replace(re, "_____") : null;
+}
+function clozeQuestions(words, count, pool) {
+  const usable = words.filter(w => w.sentence && blankOut(w.sentence, w.word));
+  const all = pool || words;
+  return pick(usable, count).map(w => {
+    const multi = /[ \-'.]/.test(w.word);
+    const lower = x => x.word === x.word.toLowerCase();
+    const okDs = x => x.id !== w.id && x.word.toLowerCase() !== w.word.toLowerCase()
+      && (/[ \-'.]/.test(x.word) === multi) && lower(x) === lower(w)
+      && !new RegExp("(?<![A-Za-z])" + x.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![A-Za-z])", "i").test(w.sentence);
+    const cand = all.filter(okDs);
+    const firstPos = (w.pos || "").split("/")[0];
+    const samePos = cand.filter(x => (x.pos || "").split("/")[0] === firstPos);
+    const seen = new Set();
+    const uniq = (samePos.length >= 3 ? samePos : cand).filter(x => { const k = x.word.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+    const ds = pick(uniq, 3);
+    return {
+      qtype: "vocab_cloze", qid: w.id, prompt: blankOut(w.sentence, w.word), hint: "選出最適合填入空格的單字" + (w.pos ? "（" + w.pos + "）" : ""),
+      speak: null, grammar: true, opts: shuffle([w.word, ...ds.map(x => x.word)]), correct: w.word,
+      explain: w.word + " " + (w.pos || "") + " " + w.meaning + "｜" + w.sentence
+    };
+  });
+}
 function grammarQuestions(gs, count) {
   return pick(gs, count).map(g => {
     const raw = [g.opt_a, g.opt_b, g.opt_c, g.opt_d];
     const correct = raw[g.answer];
-    return { qtype: "grammar", qid: g.id, prompt: g.question, hint: g.topic || "", speak: null, grammar: true,
+    return { qtype: "grammar", qid: g.id, prompt: g.question, hint: "", speak: null, grammar: true,
       opts: shuffle(raw), correct, explain: g.explanation || "" };
   });
 }
@@ -194,6 +222,9 @@ $("go").onclick = async () => {
       qs = shuffle([...vsel, ...grammarQuestions(gw, N)]).slice(0, N);
     } else if (st.mode === "vocab") {
       qs = vocabQuestions(await API.getWords(st.level), N);
+    } else if (st.mode === "cloze") {
+      qs = clozeQuestions(await API.getWords(st.level), N);
+      if (!qs.length) { alert("這個範圍的單字還沒有例句，請老師先匯入最新的單字檔。"); return; }
     } else if (st.mode === "grammar") {
       qs = grammarQuestions(await API.getGrammar(st.level), N);
     } else {

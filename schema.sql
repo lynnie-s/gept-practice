@@ -9,6 +9,7 @@ create table public.gept_words (
   pos text default '',
   meaning text not null,
   level text not null default 'elementary' check (level in ('elementary','intermediate')),
+  sentence text not null default '',   -- 例句（句子填空用）
   unique (word, meaning)
 );
 
@@ -132,11 +133,12 @@ declare n integer;
 begin
   if public.gept_code_ok(p_code) <> 'ok' then return -1; end if;
   if jsonb_array_length(p_rows) > 1000 then return -2; end if;
-  insert into public.gept_words(word, pos, meaning, level)
-  select btrim(r ->> 'word'), coalesce(r ->> 'pos', ''), btrim(r ->> 'meaning'), coalesce(r ->> 'level', 'elementary')
+  insert into public.gept_words(word, pos, meaning, level, sentence)
+  select btrim(r ->> 'word'), coalesce(r ->> 'pos', ''), btrim(r ->> 'meaning'), coalesce(r ->> 'level', 'elementary'), left(coalesce(r ->> 'sentence', ''), 300)
   from jsonb_array_elements(p_rows) as r
   where nullif(btrim(r ->> 'word'), '') is not null and nullif(btrim(r ->> 'meaning'), '') is not null
-  on conflict (word, meaning) do nothing;
+  on conflict (word, meaning) do update set sentence = excluded.sentence
+    where coalesce(public.gept_words.sentence, '') = '' and excluded.sentence <> '';
   get diagnostics n = row_count;
   return n;
 end $$;

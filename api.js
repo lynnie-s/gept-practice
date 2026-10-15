@@ -31,7 +31,7 @@
       await new Promise(res => { const s = document.createElement("script"); s.src = "wordlist.js"; s.onload = res; s.onerror = res; document.head.appendChild(s); });
     }
     const src = window.GEPT_WORDS || window.SAMPLE_WORDS || [];
-    demoWordCache = src.map((r, i) => ({ id: i + 1, word: r[0], pos: r[1], meaning: r[2], level: LV[r[3]] }));
+    demoWordCache = src.map((r, i) => ({ id: i + 1, word: r[0], pos: r[1], meaning: r[2], level: LV[r[3]], sentence: r[4] || "" }));
     return demoWordCache;
   }
   // 試玩模式：優先用完整文法題庫（grammarlist.js，用到才載入），沒有就退回範例
