@@ -154,13 +154,13 @@ $("fq").oninput = renderAtt; $("fm").onchange = renderAtt;
 $("attBody").addEventListener("click", async e => {
   const del = e.target.closest("[data-del]");
   if (del) {
-    if (confirm("確定刪除這筆成績？")) { await API.deleteAttempt(Number(del.dataset.del)); await load(); }
+    if (confirm("確定刪除這筆成績？")) { await API.deleteAttempt(del.dataset.del); await load(); }
     return;
   }
   const tr = e.target.closest("tr.row"); if (!tr) return;
   const nxt = tr.nextElementSibling;
   if (nxt && nxt.classList.contains("detail")) { nxt.remove(); return; }
-  const rows = await API.getAnswers(Number(tr.dataset.id));
+  const rows = await API.getAnswers(tr.dataset.id);
   const wr = rows.filter(r => !r.is_correct);
   const d = document.createElement("tr"); d.className = "detail";
   d.innerHTML = '<td colspan="8">' + (wr.length ? '<b>答錯 ' + wr.length + ' 題</b>' + wr.map(r => '<div class="wr"><span class="tag">' + (r.qtype === "grammar" ? "文法" : "單字") + '</span>' + esc(r.prompt) + '<br>學生選：<span class="b">' + esc(r.chosen) + '</span>　正確：<span class="a">' + esc(r.correct_answer) + '</span></div>').join("") : "全部答對 🎉") + '</td>';

@@ -4,6 +4,8 @@
   const cloud = !!(cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY && window.supabase);
   const sb = cloud ? window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null;
   const LV = { e: "elementary", i: "intermediate" };
+  const uuid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16); });
   const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
   const SAVE = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 
@@ -54,16 +56,17 @@
     async getGrammar(level) { return cloud ? fetchAll("grammar_questions", level) : byLevel(await loadDemoGrammar(), level); },
 
     async saveAttempt(attempt, answers) {
+      // 學生是匿名身分，沒有「讀取成績」的權限，所以編號由學生端產生，寫入時不要求回傳資料
+      const id = uuid();
       if (cloud) {
-        const { data, error } = await sb.from("attempts").insert(attempt).select("id").single();
+        const { error } = await sb.from("attempts").insert({ id, ...attempt });
         if (error) throw error;
-        const rows = answers.map(a => ({ ...a, attempt_id: data.id }));
+        const rows = answers.map(a => ({ ...a, attempt_id: id }));
         const { error: e2 } = await sb.from("attempt_answers").insert(rows);
         if (e2) throw e2;
-        return data.id;
+        return id;
       }
       const list = LS("demo_attempts", []);
-      const id = Date.now();
       list.push({ id, ...attempt, created_at: new Date().toISOString(), answers });
       SAVE("demo_attempts", list);
       return id;

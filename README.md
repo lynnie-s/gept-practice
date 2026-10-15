@@ -4,14 +4,16 @@
 老師後台：admin.html（成績紀錄、點開看學生答錯哪幾題、學生總覽、最常錯的題目、匯出 CSV、匯入題庫）
 
 ## 先試玩（不用設定）
-直接雙擊 index.html 就能玩，這時是「試玩模式」：用內建的官方單字表與 253 題文法題，成績只存在這台瀏覽器。
+沒有填 Supabase 設定（config.js 留空）時，直接雙擊 index.html 就能玩，這時是「試玩模式」：用內建的官方單字表與 253 題文法題，成績只存在這台瀏覽器。
 
-## 正式上線（沿用你的 GitHub + Vercel + Supabase）
-1. Supabase 新建專案，到 SQL Editor 貼上 schema.sql 整份執行。
-2. Authentication > Users > Add user，建立老師帳號（email + 密碼）。這個帳號才看得到成績。
-3. Project Settings > API，複製 Project URL 與 anon public key，貼進 config.js。
-4. 整個資料夾 push 到 GitHub，用 Vercel 或 GitHub Pages 部署（純靜態，不用 build）。
-5. 打開 admin.html 用老師帳號登入，到「題庫管理」匯入你的單字與文法 CSV。
+## 正式上線（GitHub + Supabase）
+後端已建在 Supabase 專案 gept-practice，config.js 已填好網址與公開金鑰，資料表與安全規則都套用完成（schema.sql 是備份）。剩下：
+1. 到 Supabase 的 Authentication > Users > Add user，用老師的 email 和密碼建立帳號。
+2. 到 SQL Editor 執行：insert into public.teachers(email) values ('老師的email');
+   只有名單內的 email 才看得到成績。Supabase 預設任何人都能註冊，所以這一步不能省。
+3. 建議到 Authentication 的設定把「Allow new users to sign up」關掉。
+4. 打開 admin.html 用老師帳號登入，到「題庫管理」匯入 gept-words-all.csv 與 gept-grammar-all.csv。
+5. 整個資料夾 push 到 GitHub，Settings > Pages 選 main 分支就有網址（純靜態，不用 build）。
 
 ## 單字來源
 官方 LTTC 初級、中級單字表（共 5,083 筆，不重複的字 4,756 個，初級 2,397 筆、中級 2,686 筆；中級表本身已包含初級）：

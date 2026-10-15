@@ -1,7 +1,8 @@
-// 填入 Supabase 的 Project URL 與 anon public key 後就會啟用雲端模式。
-// 留空的話會跑「試玩模式」：用範例題庫，成績只存在這台瀏覽器（localStorage）。
+// Supabase 專案：gept-practice
+// 這兩個值是「公開」金鑰，放在 GitHub 沒問題，真正的權限由資料庫的安全規則控制。
+// 絕對不要把 service_role 金鑰貼進任何檔案。
 window.APP_CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://pwlajnsladckgbxvowim.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_J1wvsB7mt9zrw3vsZoYsPg_gBritPP-",
   QUESTIONS_PER_QUIZ: 30
 };
