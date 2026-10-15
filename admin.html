@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>老師後台｜英檢練習</title>
 <style>
 :root{--bg:#f6f7fb;--card:#fff;--ink:#23232b;--mute:#7b7b88;--main:#4c6fff;--line:#e6e8f0;--ok:#2fb36d;--bad:#e5484d;--warn:#f59f00}
@@ -42,14 +43,13 @@ textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--line);b
 </head>
 <body>
 <div class="wrap">
-<h1><span>👩‍🏫 老師後台</span><span><a href="index.html" style="font-size:14px;color:var(--main)">學生練習頁</a> <button class="sec hide" id="logout">登出</button></span></h1>
+<h1><span>👩‍🏫 老師後台</span><span><button class="sec hide" id="logout">登出</button></span></h1>
 <div id="demoTip" class="demo hide">試玩模式：只看得到這台瀏覽器練習出來的成績。要跨裝置看全部學生，請設定 Supabase（看 README）。</div>
 
 <!-- 登入 -->
 <div id="login" class="card hide" style="max-width:380px">
-  <b>老師登入</b>
-  <div style="margin-top:10px"><input id="em" type="text" placeholder="Email" style="width:100%"></div>
-  <div style="margin-top:8px"><input id="pw" type="password" placeholder="密碼" style="width:100%"></div>
+  <b>老師後台</b>
+  <div style="margin-top:10px"><input id="pw" type="password" placeholder="老師密碼" style="width:100%" autocomplete="off"></div>
   <div id="lerr" style="color:var(--bad);font-size:13px;margin-top:6px"></div>
   <button id="loginBtn" style="margin-top:10px;width:100%">登入</button>
 </div>
@@ -104,7 +104,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const MODE = { vocab: "單字", grammar: "文法", mixed: "綜合", wrong: "錯題本" };
 const LEVEL = { elementary: "初級", intermediate: "中級", all: "初＋中" };
-let attempts = [], wrongAll = [];
+let attempts = [], hardStats = [];
 
 const fmt = d => { const t = new Date(d); const p = n => String(n).padStart(2, "0"); return (t.getMonth() + 1) + "/" + p(t.getDate()) + " " + p(t.getHours()) + ":" + p(t.getMinutes()); };
 const cls = s => s >= 80 ? "hi" : s >= 60 ? "mid" : "lo";
@@ -118,8 +118,8 @@ const dur = s => s >= 60 ? Math.floor(s / 60) + "分" + (s % 60) + "秒" : s + "
 
 $("loginBtn").onclick = async () => {
   $("lerr").textContent = "";
-  try { await API.login($("em").value.trim(), $("pw").value); $("login").classList.add("hide"); start(); }
-  catch (e) { $("lerr").textContent = "登入失敗：" + (e.message || e); }
+  try { await API.login($("pw").value); $("login").classList.add("hide"); start(); }
+  catch (e) { $("lerr").textContent = (e.message || e); }
 };
 $("pw").addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
 $("logout").onclick = async () => { await API.logout(); location.reload(); };
@@ -134,7 +134,7 @@ async function load() {
   attempts = await API.listAttempts();
   renderStats(); renderAtt(); renderStu();
   API.counts().then(c => $("counts").textContent = "目前題庫：單字 " + c.words + " 個、文法題 " + c.grammar + " 題");
-  API.allWrongAnswers().then(a => { wrongAll = a; renderHard(); });
+  API.wrongStats().then(a => { hardStats = a; renderHard(); });
 }
 
 function renderStats() {
@@ -147,7 +147,7 @@ function renderStats() {
 function renderAtt() {
   const q = $("fq").value.trim().toLowerCase(), m = $("fm").value;
   const list = attempts.filter(a => (!m || a.mode === m) && (!q || a.student_name.toLowerCase().includes(q)));
-  $("attBody").innerHTML = list.map(a => '<tr class="row" data-id="' + a.id + '"><td>' + fmt(a.created_at) + '</td><td>' + esc(a.student_name) + '</td><td>' + (MODE[a.mode] || a.mode) + '</td><td>' + (LEVEL[a.level] || a.level) + '</td><td class="s ' + cls(a.score) + '">' + a.score + '</td><td>' + a.correct + '/' + a.total + '</td><td>' + dur(a.duration_sec || 0) + '</td><td><button class="red" data-del="' + a.id + '">刪除</button></td></tr>').join("") || '<tr><td colspan="8" class="mute">還沒有成績紀錄</td></tr>';
+  $("attBody").innerHTML = list.map(a => '<tr class="row" data-id="' + a.id + '"><td>' + fmt(a.created_at) + '</td><td>' + esc(a.student_name) + '</td><td>' + (MODE[a.mode] || a.mode) + '</td><td>' + (LEVEL[a.level] || a.level) + '</td><td class="s ' + cls(a.score) + '">' + a.score + '</td><td>' + a.correct + '/' + a.total + '</td><td>' + dur(a.duration_sec || 0) + '</td><td>' + (API.canDelete ? '<button class="red" data-del="' + a.id + '">刪除</button>' : '') + '</td></tr>').join("") || '<tr><td colspan="8" class="mute">還沒有成績紀錄</td></tr>';
 }
 $("fq").oninput = renderAtt; $("fm").onchange = renderAtt;
 
@@ -177,9 +177,7 @@ function renderStu() {
 }
 
 function renderHard() {
-  const map = {};
-  wrongAll.forEach(r => { const k = r.qtype + "#" + r.qid; const o = map[k] = map[k] || { p: r.prompt, c: r.correct_answer, t: r.qtype, n: 0, w: 0 }; o.n++; if (!r.is_correct) o.w++; });
-  const arr = Object.values(map).filter(o => o.n >= 2 && o.w > 0).sort((a, b) => b.w - a.w || b.w / b.n - a.w / a.n).slice(0, 50);
+  const arr = hardStats.map(r => ({ p: r.prompt, c: r.correct_answer, t: r.qtype, n: r.n, w: r.w })).filter(o => o.n >= 2 && o.w > 0).sort((a, b) => b.w - a.w || b.w / b.n - a.w / a.n).slice(0, 50);
   $("hardBody").innerHTML = arr.map(o => '<tr><td><span class="tag">' + (o.t === "grammar" ? "文法" : "單字") + '</span>' + esc(o.p) + '</td><td>' + esc(o.c) + '</td><td>' + o.n + '</td><td>' + o.w + '</td><td><div class="bar"><i style="width:' + Math.round(o.w / o.n * 100) + '%"></i></div>' + Math.round(o.w / o.n * 100) + '%</td></tr>').join("") || '<tr><td colspan="5" class="mute">資料還不夠多（同一題至少被作答 2 次才會列出）</td></tr>';
 }
 

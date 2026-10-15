@@ -72,65 +72,70 @@
       return id;
     },
 
-    // ---- 後台 ----
-    async session() { if (!cloud) return { demo: true }; const { data } = await sb.auth.getSession(); return data.session; },
-    async login(email, password) {
-      if (!cloud) return { demo: true };
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    // ---- 後台（用老師密碼，不需要帳號）----
+    canDelete: !cloud,   // 雲端模式未開放刪除（資料庫沒有刪除函式），試玩模式可刪
+    code() { try { return localStorage.getItem("gept_teacher_code") || ""; } catch (e) { return ""; } },
+    async rpc(fn, args) {
+      const { data, error } = await sb.rpc(fn, { p_code: this.code(), ...(args || {}) });
       if (error) throw error;
-      return data.session;
+      return data;
     },
-    async logout() { if (cloud) await sb.auth.signOut(); },
+    async session() {
+      if (!cloud) return { demo: true };
+      if (!this.code()) return null;
+      try { return (await sb.rpc("gept_admin_login", { p_code: this.code() })).data === "ok" ? { ok: true } : null; } catch (e) { return null; }
+    },
+    async login(code) {
+      if (!cloud) return { demo: true };
+      const c = String(code || "").trim();
+      if (!c) throw new Error("請輸入老師密碼");
+      const { data, error } = await sb.rpc("gept_admin_login", { p_code: c });
+      if (error) throw error;
+      if (data === "locked") throw new Error("輸入錯誤太多次，請 10 分鐘後再試");
+      if (data !== "ok") throw new Error("密碼不對");
+      try { localStorage.setItem("gept_teacher_code", c); } catch (e) {}
+      return { ok: true };
+    },
+    async logout() { try { localStorage.removeItem("gept_teacher_code"); } catch (e) {} },
 
     async listAttempts() {
-      if (cloud) {
-        const { data, error } = await sb.from("gept_attempts").select("*").order("created_at", { ascending: false }).limit(2000);
-        if (error) throw error;
-        return data;
-      }
+      if (cloud) return (await this.rpc("gept_admin_list_attempts")) || [];
       return LS("demo_attempts", []).slice().reverse().map(a => { const { answers, ...rest } = a; return rest; });
     },
     async getAnswers(attemptId) {
-      if (cloud) {
-        const { data, error } = await sb.from("gept_attempt_answers").select("*").eq("attempt_id", attemptId).order("id");
-        if (error) throw error;
-        return data;
-      }
+      if (cloud) return (await this.rpc("gept_admin_get_answers", { p_attempt: attemptId })) || [];
       const a = LS("demo_attempts", []).find(x => x.id === attemptId);
       return a ? a.answers : [];
     },
-    // 取得所有答錯紀錄（用來統計最常錯的題目）
-    async allWrongAnswers() {
-      if (cloud) {
-        let out = [], from = 0, step = 1000;
-        while (true) {
-          const { data, error } = await sb.from("gept_attempt_answers").select("qtype,qid,prompt,correct_answer,is_correct").range(from, from + step - 1);
-          if (error) throw error;
-          out = out.concat(data);
-          if (data.length < step) break;
-          from += step;
-        }
-        return out;
-      }
-      return LS("demo_attempts", []).flatMap(a => a.answers);
+    // 每一題被作答幾次、答錯幾次：[{qtype,qid,prompt,correct_answer,n,w}]
+    async wrongStats() {
+      if (cloud) return ((await this.rpc("gept_admin_wrong_stats")) || []).map(r => ({ ...r, n: Number(r.n), w: Number(r.w) }));
+      const map = {};
+      LS("demo_attempts", []).flatMap(a => a.answers).forEach(r => {
+        const k = r.qtype + "#" + r.qid;
+        const o = map[k] = map[k] || { qtype: r.qtype, qid: r.qid, prompt: r.prompt, correct_answer: r.correct_answer, n: 0, w: 0 };
+        o.n++; if (!r.is_correct) o.w++;
+      });
+      return Object.values(map);
     },
     async deleteAttempt(id) {
-      if (cloud) { const { error } = await sb.from("gept_attempts").delete().eq("id", id); if (error) throw error; return; }
+      if (cloud) throw new Error("雲端模式暫不提供刪除");
       SAVE("demo_attempts", LS("demo_attempts", []).filter(a => a.id !== id));
+    },
+    async _import(fn, rows) {
+      for (let i = 0; i < rows.length; i += 500) {
+        const r = await this.rpc(fn, { p_rows: rows.slice(i, i + 500) });
+        if (r === -1) throw new Error("密碼不對或已被鎖定");
+        if (r < 0) throw new Error("匯入失敗（代碼 " + r + "）");
+      }
     },
     async importWords(rows) {
       if (!cloud) throw new Error("試玩模式不能匯入，請先設定 Supabase");
-      for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await sb.from("gept_words").upsert(rows.slice(i, i + 500), { onConflict: "word,meaning", ignoreDuplicates: true });
-        if (error) throw error;
-      }
+      return this._import("gept_admin_import_words", rows);
     },
     async importGrammar(rows) {
       if (!cloud) throw new Error("試玩模式不能匯入，請先設定 Supabase");
-      for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await sb.from("gept_grammar_questions").insert(rows.slice(i, i + 500));
-        if (error) throw error;
-      }
+      return this._import("gept_admin_import_grammar", rows);
     },
     async counts() {
       if (!cloud) return { words: (await loadDemoWords()).length, grammar: (await loadDemoGrammar()).length };
